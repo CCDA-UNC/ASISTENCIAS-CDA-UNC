@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; display: flex; justify-content: center; padding: 20px; }
+    .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    h2 { margin-top: 0; color: #1a73e8; text-align: center; }
+    label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; }
+    input, select, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
+    button { background: #1a73e8; color: white; border: none; font-weight: bold; margin-top: 20px; cursor: pointer; }
+    button:disabled { background: #9aa0a6; }
+    #estado { margin-top: 15px; text-align: center; font-size: 14px; color: #333; }
+    .info-red { font-size: 12px; color: #666; margin-top: 10px; background: #eef3fc; padding: 8px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Control de Asistencia</h2>
+    
+    <label>Legajo o DNI</label>
+    <input type="text" id="legajo" placeholder="Ej: 1045" required>
+
+    <label>Nombre y Apellido</label>
+    <input type="text" id="nombre" placeholder="Ej: Juan Pérez" required>
+
+    <label>Tipo de Movimiento</label>
+    <select id="tipo">
+      <option value="Entrada">Entrada</option>
+      <option value="Inicio Pausa">Inicio Pausa</option>
+      <option value="Fin Pausa">Fin Pausa</option>
+      <option value="Salida">Salida</option>
+    </select>
+
+    <div class="info-red" id="datosRed">Obteniendo IP y ubicación GPS...</div>
+
+    <button id="btnEnviar" onclick="enviar()" disabled>Registrar Fichaje</button>
+    <div id="estado"></div>
+  </div>
+
+  <script>
+    let ipUsuario = "Buscando...";
+    let latUsuario = "";
+    let lngUsuario = "";
+
+    // Truco JSONP para saltar el bloqueo de iframe de Google y obtener la IP real
+    function recibirIP(json) {
+      if (json && json.ip) {
+        ipUsuario = json.ip;
+        actualizarInfo();
+      }
+    }
+
+    const scriptIP = document.createElement('script');
+    scriptIP.src = 'https://ipify.org';
+    scriptIP.onerror = function() {
+      ipUsuario = "No detectada por red";
+      actualizarInfo();
+    };
+    document.head.appendChild(scriptIP);
+
+    // Si en 4 segundos no respondió, habilitamos igual el GPS
+    setTimeout(() => {
+      if (ipUsuario === "Buscando...") {
+        ipUsuario = "Sin respuesta IP";
+        actualizarInfo();
+      }
+    }, 4000);
+
+    // Obtener Ubicación GPS
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          latUsuario = pos.coords.latitude;
+          lngUsuario = pos.coords.longitude;
+          actualizarInfo();
+        },
+        (err) => {
+          document.getElementById('datosRed').innerHTML = "⚠️ Debés activar el GPS y dar permiso de ubicación para fichar.";
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      document.getElementById('datosRed').innerText = "Tu navegador no soporta geolocalización.";
+    }
+
+    function actualizarInfo() {
+      if (latUsuario !== "" && ipUsuario !== "Buscando...") {
+        document.getElementById('datosRed').innerHTML = `✅ <b>Listo para fichar</b><br>IP: ${ipUsuario}<br>GPS: ${latUsuario.toFixed(5)}, ${lngUsuario.toFixed(5)}`;
+        document.getElementById('btnEnviar').disabled = false;
+      }
+    }
+
+    function enviar() {
+      const legajo = document.getElementById('legajo').value.trim();
+      const nombre = document.getElementById('nombre').value.trim();
+      const tipo = document.getElementById('tipo').value;
+
+      if (!legajo || !nombre) {
+        alert("Por favor completá tu Legajo/DNI y Nombre.");
+        return;
+      }
+
+      const btn = document.getElementById('btnEnviar');
+      btn.disabled = true;
+      btn.innerText = "Guardando...";
+
+      const datos = { legajo, nombre, tipo, ip: ipUsuario, lat: latUsuario, lng: lngUsuario };
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          document.getElementById('estado').innerHTML = `<b style="color:green;">${res}</b>`;
+          btn.innerText = "Fichaje Completado";
+        })
+        .withFailureHandler((err) => {
+          document.getElementById('estado').innerHTML = `<b style="color:red;">Error: ${err}</b>`;
+          btn.disabled = false;
+          btn.innerText = "Reintentar";
+        })
+        .registrarFichaje(datos);
+    }
+  </script>
+</body>
+</html>
