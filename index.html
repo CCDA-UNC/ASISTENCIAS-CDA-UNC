@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Evita que los celulares guarden el código viejo en caché -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Control de Asistencia - CDA UNC</title>
   <style>
     body { font-family: Arial, sans-serif; background: #f4f6f8; display: flex; justify-content: center; padding: 20px; margin: 0; }
@@ -100,7 +101,6 @@
       const tipo = document.getElementById('tipo').value;
       const estadoDiv = document.getElementById('estado');
 
-      // Validamos sin usar "alert()" para que no se bloquee en celulares
       if (!legajo || !nombre) {
         estadoDiv.innerHTML = `<b style="color:red;">⚠️ Completá Legajo y Nombre.</b>`;
         return;
@@ -117,15 +117,15 @@
         tipo: tipo,
         ip: ipUsuario,
         lat: latUsuario,
-        lng: lngUsuario
+        lng: lngUsuario,
+        t: Date.now() // Evita que el celular ignore envíos repetidos por caché
       });
 
-      // Envío directo compatible con todos los móviles
-      fetch(URL_SCRIPT + "?" + params.toString(), {
-        method: "GET",
-        mode: "no-cors"
-      })
-      .then(() => {
+      // Técnica de píxel/imagen: nunca es bloqueada por Chrome móvil ni Safari
+      const beacon = new Image();
+      
+      const finalizarEnvio = () => {
+        if (btn.innerText === "Fichaje Completado") return;
         const horaLocal = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         estadoDiv.innerHTML = `<b style="color:green;">✅ Fichaje registrado (${horaLocal})</b>`;
         btn.innerText = "Fichaje Completado";
@@ -138,12 +138,12 @@
           btn.innerText = "Registrar Fichaje";
           estadoDiv.innerHTML = "";
         }, 3000);
-      })
-      .catch(err => {
-        estadoDiv.innerHTML = `<b style="color:red;">Error de red, reintentá.</b>`;
-        btn.disabled = false;
-        btn.innerText = "Reintentar";
-      });
+      };
+
+      // Google devuelve texto ("OK") en lugar de una imagen, por lo que disparará onerror al terminar de procesar
+      beacon.onload = finalizarEnvio;
+      beacon.onerror = finalizarEnvio;
+      beacon.src = URL_SCRIPT + "?" + params.toString();
     }
   </script>
 </body>
