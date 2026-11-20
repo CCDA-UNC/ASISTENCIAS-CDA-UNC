@@ -41,7 +41,8 @@
   </div>
 
   <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbx0gi_bJ1w7hoN4LIFC4dynS0eNDI03PCKxrXUD-kLb77HlxH_3GqTpl0PEPvxiSA-L6w/exec";
+    // PEGA AQUÍ LA NUEVA URL DE IMPLEMENTACIÓN (/exec)
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycby36KUwj6IAMR0o_Zhg2Qk6HexF845wtFRw62YqZiz2j_bUAChFNoh7XDEtk-ZKirSTrg/exec";
 
     let ipUsuario = "Buscando...";
     let latUsuario = "";
@@ -102,23 +103,31 @@
         return;
       }
 
+      if (!URL_SCRIPT.startsWith("https://script.google.com/")) {
+        alert("Falta pegar la URL de Google Apps Script en el código.");
+        return;
+      }
+
       const btn = document.getElementById('btnEnviar');
       btn.disabled = true;
       btn.innerText = "Guardando...";
 
-      const datos = { legajo, nombre, tipo, ip: ipUsuario, lat: latUsuario, lng: lngUsuario };
+      const params = new URLSearchParams({
+        legajo: legajo,
+        nombre: nombre,
+        tipo: tipo,
+        ip: ipUsuario,
+        lat: latUsuario,
+        lng: lngUsuario
+      });
 
-      fetch(URL_SCRIPT, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
-        body: JSON.stringify(datos)
+      fetch(URL_SCRIPT + "?" + params.toString(), {
+        method: "GET",
+        mode: "no-cors"
       })
       .then(() => {
         const horaLocal = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        document.getElementById('estado').innerHTML = `<b style="color:green;">✅ Fichaje enviado (${horaLocal})</b>`;
+        document.getElementById('estado').innerHTML = `<b style="color:green;">✅ Fichaje registrado (${horaLocal})</b>`;
         btn.innerText = "Fichaje Completado";
         document.getElementById('legajo').value = '';
         document.getElementById('nombre').value = '';
@@ -130,7 +139,7 @@
         }, 3000);
       })
       .catch(err => {
-        document.getElementById('estado').innerHTML = `<b style="color:red;">Error de red: ${err.message}</b>`;
+        document.getElementById('estado').innerHTML = `<b style="color:red;">Error: ${err.message}</b>`;
         btn.disabled = false;
         btn.innerText = "Reintentar";
       });
