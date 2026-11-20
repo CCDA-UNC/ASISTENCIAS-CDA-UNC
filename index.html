@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
   <title>Control de Asistencia - CDA UNC</title>
   <style>
     body { font-family: Arial, sans-serif; background: #f4f6f8; display: flex; justify-content: center; padding: 20px; margin: 0; }
@@ -44,7 +42,8 @@
   </div>
 
   <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbxT1HOVWUWFB1N_q7dayK1WiRFWl6dokH281XV6z461G9lGPeduPxhw4NzP6WDrKFdvaA/exec";
+    // PEGÁ AQUÍ LA NUEVA URL QUE TERMINA EN /exec
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbx7Q8_iwNIDqP01EW_wC5uNjaZ1wnkF20W2HHdrfh8ryGY0VSjnUbUppNG8-QsjqL6htQ/exec";
 
     let ipUsuario = "Buscando...";
     let latUsuario = "";
@@ -59,18 +58,8 @@
 
     const scriptIP = document.createElement('script');
     scriptIP.src = 'https://api.ipify.org?format=jsonp&callback=recibirIP';
-    scriptIP.onerror = function() {
-      ipUsuario = "No detectada por red";
-      actualizarInfo();
-    };
+    scriptIP.onerror = () => { ipUsuario = "No detectada"; actualizarInfo(); };
     document.head.appendChild(scriptIP);
-
-    setTimeout(() => {
-      if (ipUsuario === "Buscando...") {
-        ipUsuario = "Sin respuesta IP";
-        actualizarInfo();
-      }
-    }, 4000);
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -79,17 +68,13 @@
           lngUsuario = pos.coords.longitude;
           actualizarInfo();
         },
-        (err) => {
-          document.getElementById('datosRed').innerHTML = "⚠️ Activar GPS y dar permiso para fichar.";
-        },
+        () => { document.getElementById('datosRed').innerHTML = "⚠️ Activar GPS para fichar."; },
         { enableHighAccuracy: true }
       );
-    } else {
-      document.getElementById('datosRed').innerText = "Tu navegador no soporta geolocalización.";
     }
 
     function actualizarInfo() {
-      if (latUsuario !== "" && ipUsuario !== "Buscando...") {
+      if (latUsuario !== "") {
         document.getElementById('datosRed').innerHTML = `✅ <b>Listo para fichar</b><br>IP: ${ipUsuario}<br>GPS: ${latUsuario.toFixed(5)}, ${lngUsuario.toFixed(5)}`;
         document.getElementById('btnEnviar').disabled = false;
       }
@@ -100,33 +85,51 @@
       const nombre = document.getElementById('nombre').value.trim();
       const tipo = document.getElementById('tipo').value;
       const estadoDiv = document.getElementById('estado');
+      const btn = document.getElementById('btnEnviar');
 
       if (!legajo || !nombre) {
         estadoDiv.innerHTML = `<b style="color:red;">⚠️ Completá Legajo y Nombre.</b>`;
         return;
       }
 
-      if (!URL_SCRIPT.startsWith("https://script.google.com/")) {
-        estadoDiv.innerHTML = `<b style="color:red;">⚠️ Falta configurar la URL del script.</b>`;
-        return;
-      }
-
-      const btn = document.getElementById('btnEnviar');
       btn.disabled = true;
       btn.innerText = "Registrando...";
-      estadoDiv.innerHTML = "Conectando con el servidor...";
+      estadoDiv.innerHTML = "Enviando datos de forma segura...";
 
-      const params = new URLSearchParams({
-        legajo: legajo,
-        nombre: nombre,
-        tipo: tipo,
-        ip: ipUsuario,
-        lat: latUsuario,
-        lng: lngUsuario
+      // Creamos un paquete de datos para enviar por POST
+      const formData = new FormData();
+      formData.append('legajo', legajo);
+      formData.append('nombre', nombre);
+      formData.append('tipo', tipo);
+      formData.append('ip', ipUsuario);
+      formData.append('lat', latUsuario);
+      formData.append('lng', lngUsuario);
+
+      // Envío POST oculto: Nunca abre Drive y nunca bloquea iframes
+      fetch(URL_SCRIPT, {
+        method: 'POST',
+        body: formData,
+        mode: 'no-cors'
+      })
+      .then(() => {
+        const hora = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        estadoDiv.innerHTML = `<b style="color:green;">✅ Fichaje registrado exitosamente (${hora})</b>`;
+        btn.innerText = "Fichaje Completado";
+        
+        document.getElementById('legajo').value = '';
+        document.getElementById('nombre').value = '';
+        
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerText = "Registrar Fichaje";
+          estadoDiv.innerHTML = "";
+        }, 3000);
+      })
+      .catch(() => {
+        estadoDiv.innerHTML = `<b style="color:red;">Error de red, reintentá.</b>`;
+        btn.disabled = false;
+        btn.innerText = "Reintentar";
       });
-
-      // Navegación directa: 100% compatible con Chrome móvil, Safari y WhatsApp
-      window.location.href = URL_SCRIPT + "?" + params.toString();
     }
   </script>
 </body>
