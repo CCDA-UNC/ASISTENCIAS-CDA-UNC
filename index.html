@@ -41,7 +41,7 @@
   </div>
 
   <script>
-    // REEMPLAZA ESTA URL CON LA DE TU IMPLEMENTACIÓN DE GOOGLE APPS SCRIPT
+    // REEMPLAZA ESTA URL CON LA DE TU IMPLEMENTACIÓN DE GOOGLE APPS SCRIPT (DEBE TERMINAR EN /exec)
     const URL_SCRIPT = "PEGAR_AQUI_TU_URL_DE_APPS_SCRIPT";
 
     let ipUsuario = "Buscando...";
@@ -103,6 +103,11 @@
         return;
       }
 
+      if (!URL_SCRIPT.startsWith("https://script.google.com/")) {
+        alert("Error de configuración: Falta pegar la URL válida de Google Apps Script en el código.");
+        return;
+      }
+
       const btn = document.getElementById('btnEnviar');
       btn.disabled = true;
       btn.innerText = "Guardando...";
@@ -111,30 +116,27 @@
 
       fetch(URL_SCRIPT, {
         method: "POST",
+        mode: "no-cors",
         headers: {
           "Content-Type": "text/plain;charset=utf-8"
         },
         body: JSON.stringify(datos)
       })
-      .then(response => response.json())
-      .then(res => {
-        if (res.status === "ok") {
-          document.getElementById('estado').innerHTML = `<b style="color:green;">${res.mensaje}</b>`;
-          btn.innerText = "Fichaje Completado";
-          document.getElementById('legajo').value = '';
-          document.getElementById('nombre').value = '';
-          
-          setTimeout(() => {
-            btn.disabled = false;
-            btn.innerText = "Registrar Fichaje";
-            document.getElementById('estado').innerHTML = "";
-          }, 3000);
-        } else {
-          throw new Error(res.mensaje);
-        }
+      .then(() => {
+        const horaLocal = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById('estado').innerHTML = `<b style="color:green;">✅ Fichaje enviado (${horaLocal})</b>`;
+        btn.innerText = "Fichaje Completado";
+        document.getElementById('legajo').value = '';
+        document.getElementById('nombre').value = '';
+        
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerText = "Registrar Fichaje";
+          document.getElementById('estado').innerHTML = "";
+        }, 3000);
       })
       .catch(err => {
-        document.getElementById('estado').innerHTML = `<b style="color:red;">Error: ${err.message}</b>`;
+        document.getElementById('estado').innerHTML = `<b style="color:red;">Error de red: ${err.message}</b>`;
         btn.disabled = false;
         btn.innerText = "Reintentar";
       });
