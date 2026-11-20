@@ -41,8 +41,8 @@
   </div>
 
   <script>
-    // REEMPLAZA ESTA URL CON LA DE TU IMPLEMENTACIÓN DE GOOGLE APPS SCRIPT (DEBE TERMINAR EN /exec)
-const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbx.../exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbx0gi_bJ1w7hoN4LIFC4dynS0eNDI03PCKxrXUD-kLb77HlxH_3GqTpl0PEPvxiSA-L6w/exec";
+
     let ipUsuario = "Buscando...";
     let latUsuario = "";
     let lngUsuario = "";
@@ -99,11 +99,6 @@ const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbx.../exec";
 
       if (!legajo || !nombre) {
         alert("Por favor completá tu Legajo/DNI y Nombre.");
-        return;
-      }
-
-      if (!URL_SCRIPT.startsWith("https://script.google.com/")) {
-        alert("Error de configuración: Falta pegar la URL válida de Google Apps Script en el código.");
         return;
       }
 
