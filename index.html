@@ -44,7 +44,7 @@
   </div>
 
   <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycby36KUwj6IAMR0o_Zhg2Qk6HexF845wtFRw62YqZiz2j_bUAChFNoh7XDEtk-ZKirSTrg/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbxT1HOVWUWFB1N_q7dayK1WiRFWl6dokH281XV6z461G9lGPeduPxhw4NzP6WDrKFdvaA/exec";
 
     let ipUsuario = "Buscando...";
     let latUsuario = "";
@@ -106,10 +106,15 @@
         return;
       }
 
+      if (!URL_SCRIPT.startsWith("https://script.google.com/")) {
+        estadoDiv.innerHTML = `<b style="color:red;">⚠️ Falta configurar la URL del script.</b>`;
+        return;
+      }
+
       const btn = document.getElementById('btnEnviar');
       btn.disabled = true;
-      btn.innerText = "Guardando...";
-      estadoDiv.innerHTML = "";
+      btn.innerText = "Registrando...";
+      estadoDiv.innerHTML = "Conectando con el servidor...";
 
       const params = new URLSearchParams({
         legajo: legajo,
@@ -117,33 +122,11 @@
         tipo: tipo,
         ip: ipUsuario,
         lat: latUsuario,
-        lng: lngUsuario,
-        t: Date.now() // Evita que el celular ignore envíos repetidos por caché
+        lng: lngUsuario
       });
 
-      // Técnica de píxel/imagen: nunca es bloqueada por Chrome móvil ni Safari
-      const beacon = new Image();
-      
-      const finalizarEnvio = () => {
-        if (btn.innerText === "Fichaje Completado") return;
-        const horaLocal = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        estadoDiv.innerHTML = `<b style="color:green;">✅ Fichaje registrado (${horaLocal})</b>`;
-        btn.innerText = "Fichaje Completado";
-        
-        document.getElementById('legajo').value = '';
-        document.getElementById('nombre').value = '';
-        
-        setTimeout(() => {
-          btn.disabled = false;
-          btn.innerText = "Registrar Fichaje";
-          estadoDiv.innerHTML = "";
-        }, 3000);
-      };
-
-      // Google devuelve texto ("OK") en lugar de una imagen, por lo que disparará onerror al terminar de procesar
-      beacon.onload = finalizarEnvio;
-      beacon.onerror = finalizarEnvio;
-      beacon.src = URL_SCRIPT + "?" + params.toString();
+      // Navegación directa: 100% compatible con Chrome móvil, Safari y WhatsApp
+      window.location.href = URL_SCRIPT + "?" + params.toString();
     }
   </script>
 </body>
