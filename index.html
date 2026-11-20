@@ -17,6 +17,9 @@
   </style>
 </head>
 <body>
+  <!-- IFRAME INVISIBLE PARA EVITAR BLOQUEOS DE CORS -->
+  <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+
   <div class="card">
     <h2>Control de Asistencia</h2>
     
@@ -102,46 +105,45 @@
         return;
       }
 
-      if (!URL_SCRIPT.startsWith("https://script.google.com/")) {
-        alert("Falta pegar la URL de Google Apps Script en el código.");
-        return;
-      }
-
       const btn = document.getElementById('btnEnviar');
       btn.disabled = true;
       btn.innerText = "Guardando...";
 
-      const params = new URLSearchParams({
-        legajo: legajo,
-        nombre: nombre,
-        tipo: tipo,
-        ip: ipUsuario,
-        lat: latUsuario,
-        lng: lngUsuario
-      });
+      // Creamos un formulario dinámico que envía los datos al Iframe invisible
+      const form = document.createElement("form");
+      form.action = URL_SCRIPT;
+      form.method = "GET";
+      form.target = "hidden_iframe"; // Envía los datos sin cambiar de página
 
-      fetch(URL_SCRIPT + "?" + params.toString(), {
-        method: "GET",
-        mode: "no-cors"
-      })
-      .then(() => {
+      const params = { legajo, nombre, tipo, ip: ipUsuario, lat: latUsuario, lng: lngUsuario };
+      
+      for (const key in params) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = params[key];
+        form.appendChild(input);
+      }
+      
+      document.body.appendChild(form);
+      form.submit(); // Dispara el envío
+
+      // Limpiamos y mostramos éxito
+      setTimeout(() => {
         const horaLocal = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         document.getElementById('estado').innerHTML = `<b style="color:green;">✅ Fichaje registrado (${horaLocal})</b>`;
         btn.innerText = "Fichaje Completado";
+        
         document.getElementById('legajo').value = '';
         document.getElementById('nombre').value = '';
+        document.body.removeChild(form);
         
         setTimeout(() => {
           btn.disabled = false;
           btn.innerText = "Registrar Fichaje";
           document.getElementById('estado').innerHTML = "";
         }, 3000);
-      })
-      .catch(err => {
-        document.getElementById('estado').innerHTML = `<b style="color:red;">Error: ${err.message}</b>`;
-        btn.disabled = false;
-        btn.innerText = "Reintentar";
-      });
+      }, 1000);
     }
   </script>
 </body>
